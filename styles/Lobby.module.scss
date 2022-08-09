@@ -1,0 +1,17 @@
+.main {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.container-row {
+    display: flex;
+    flex-direction: row;
+}
+
+.container-column {
+    display: flex;
+    flex-direction: column;
+}

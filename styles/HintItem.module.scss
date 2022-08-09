@@ -1,0 +1,30 @@
+@use './colors.scss';
+@import './animations.scss';
+
+.dot {
+    height: 50px;
+    width: 50px;
+    margin: 3px;
+    border-radius: 50%;
+    display: inline-block;
+
+    &:hover {
+        @include selected-hover-animation();
+    }
+}
+
+.number {
+    height: 50px;
+    width: 50px;
+    margin: 3px;
+    border: 1px solid white;
+    border-radius: 50%;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    &:hover {
+        @include selected-hover-animation();
+    }
+}

@@ -1,0 +1,22 @@
+@keyframes selected-hover {
+    from {
+        transform: scale(1);
+    }
+
+    to {
+        transform: scale(1.2);
+    }
+}
+
+@keyframes selected {
+    50% {
+        transform: translateY(10px);
+    }
+}
+
+@mixin selected-hover-animation {
+    animation-name: selected-hover;
+    animation-duration: 0.2s;
+    animation-timing-function: ease-out;
+    animation-fill-mode: forwards;
+}

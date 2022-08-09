@@ -1,0 +1,82 @@
+.main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.game-board {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-y: auto;
+    height: 80vh;
+    padding-right: 30px;
+    padding-left: 30px;
+}
+
+.counters {
+    position: absolute;
+    left: 1%;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+}
+
+.counter-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.room-info {
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 10px;
+}
+
+.choices {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    align-items: flex-end;
+}
+
+.choice {
+    margin: 10px;
+    // background-color: 'hsl(0, 0, 4)';
+
+    &:hover {}
+}
+
+.board-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.hands {}
+
+.playerHand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: fit-content;
+    margin-top: 3px;
+    padding: 2px 15px;
+}
+
+.selected {
+    background-color: #420076;
+}
+
+.hover-effect {
+    &:hover {
+        background-color: white;
+    }
+}
