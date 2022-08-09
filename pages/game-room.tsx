@@ -103,7 +103,7 @@ function GameRoom() {
         if (newGameState.isGameRunning) {
             const isMyTurn = newGameState.whoseTurn().id === myPlayerIdRef.current;
             if (isMyTurn) {
-                handleOnChangePlayerGameRoomState(PlayerGameRoomState.GiveHint, newGameState);
+                handleOnChangePlayerGameRoomState(PlayerGameRoomState.DiscardCard, newGameState);
             } else {
                 handleOnChangePlayerGameRoomState(PlayerGameRoomState.Waiting, newGameState);
             }
@@ -118,8 +118,11 @@ function GameRoom() {
     }
 
     function onClickStart(): void {
+        if (gameStateRef.current!.players.length < 2) {
+            alert('need at least 2 players');
+            return;
+        }
         socket!.emit('start-game', roomId);
-
     }
 
     function handleOnClickCard(card: Card): void {
@@ -175,32 +178,10 @@ function GameRoom() {
     }
 
     function handleOnPlayerHandSelected(selectedPlayerId: string) {
-        if (selectedPlayerId === myPlayerIdRef.current) return;
+        if ([PlayerGameRoomState.PlayCard, PlayerGameRoomState.DiscardCard].includes(playerGameRoomState)) return;
         if (PlayerGameRoomState.GiveHint) {
             setSelectedPlayer(gameStateRef.current!.getPlayer(selectedPlayerId));
         }
-    }
-
-    function generatePlayerHandCSSClass(elementOwnerId: string) {
-        if (selectedPlayer == null) return styles.playerHand;
-
-        if (playerGameRoomState === PlayerGameRoomState.GiveHint) {
-            if (selectedPlayer.id === elementOwnerId) {
-                return joinClassNames(styles.playerHand, styles.selected);
-            }
-            if (myPlayerIdRef.current === elementOwnerId) {
-                return styles.playerHand;
-            }
-            return joinClassNames(styles.playerHand, styles['hover-effect']);
-        } else if ([PlayerGameRoomState.PlayCard, PlayerGameRoomState.DiscardCard].includes(playerGameRoomState)) {
-            if (selectedPlayer.id === elementOwnerId) {
-                return joinClassNames(styles.playerHand, styles.selected);
-            }
-            return styles.playerHand;
-        } else {
-            return styles.playerHand;
-        }
-
     }
 
     const variants = {
@@ -235,9 +216,12 @@ function GameRoom() {
         notSelectedPlayer: {
             transform: 'scale(1)'
         },
+        notSelectedPlayerHover: {
+            transform: 'scale(1.2)'
+        },
         selectedPlayer: {
             backgroundColor: 'hsl(304, 33, 14)',
-            transform: 'scale(1.2)'
+            transform: 'scale(1)'
         },
         visible: {
             opacity: 1
@@ -271,6 +255,9 @@ function GameRoom() {
         }
 
         if (element === 'hint') {
+            if (gameStateRef.current!.hints === 0) {
+                return 'hidden';
+            }
             if (PlayerGameRoomState.GiveHint === currentPlayerGameRoomState) {
                 return 'activeChoiceHintFormOpen';
             }
@@ -288,13 +275,13 @@ function GameRoom() {
         if (selectedPlayer == null) return 'notSelectedPlayer';
 
         if (playerGameRoomState === PlayerGameRoomState.GiveHint) {
-            if (selectedPlayer.id === elementOwnerId) {
-                return 'selectedPlayer';
-            }
             if (myPlayerIdRef.current === elementOwnerId) {
                 return 'notSelectedPlayer';
             }
-            return joinClassNames(styles.playerHand, styles['hover-effect']);
+            if (selectedPlayer.id === elementOwnerId) {
+                return 'selectedPlayer';
+            }
+            return 'notSelectedPlayer';
         } else if ([PlayerGameRoomState.PlayCard, PlayerGameRoomState.DiscardCard].includes(playerGameRoomState)) {
             if (selectedPlayer.id === elementOwnerId) {
                 return 'selectedPlayer';
@@ -302,7 +289,26 @@ function GameRoom() {
             return 'notSelectedPlayer';
         }
         return 'notSelectedPlayer';
+    }
 
+    function determinePlayerHandCSSVariantHover(elementOwnerId: string): string {
+        if (selectedPlayer == null) return 'notSelectedPlayer';
+
+        if (playerGameRoomState === PlayerGameRoomState.GiveHint) {
+            if (myPlayerIdRef.current === elementOwnerId) {
+                return 'notSelectedPlayer';
+            }
+            if (selectedPlayer.id === elementOwnerId) {
+                return 'selectedPlayer';
+            }
+            return 'notSelectedPlayerHover';
+        } else if ([PlayerGameRoomState.PlayCard, PlayerGameRoomState.DiscardCard].includes(playerGameRoomState)) {
+            if (selectedPlayer.id === elementOwnerId) {
+                return 'selectedPlayer';
+            }
+            return 'notSelectedPlayer';
+        }
+        return 'notSelectedPlayer';
     }
 
     function displayGameBoard(): JSX.Element {
@@ -314,10 +320,10 @@ function GameRoom() {
                     <div>
                         <div className={styles.counters}>
                             <div className={styles['counter-row']}>
-                                <BombCountItem />x{gameStateRef.current?.bombs}
+                                <BombCountItem /> x{gameStateRef.current?.bombs}
                             </div>
                             <div className={styles['counter-row']}>
-                                <HintCountItem />x{gameStateRef.current?.hints}
+                                <HintCountItem /> x{gameStateRef.current?.hints}
                             </div>
                         </div>
 
@@ -332,6 +338,7 @@ function GameRoom() {
                             return (
                                 <motion.div key={index} onClick={event => handleOnPlayerHandSelected(player.id)}
                                     animate={determinePlayerHandCSSVariant(player.id)}
+                                    whileHover={determinePlayerHandCSSVariantHover(player.id)}
                                     variants={variants}
                                     transition={{ duration: 0.2 }}
                                     className={styles.playerHand}>

@@ -9,7 +9,7 @@ interface IWaitingCardProps {
 export default function WaitingCard({ players, onClickStart }: IWaitingCardProps) {
 
     let playerList = players?.map((player, index) => {
-        return <div key={index}>{player.username} {player.socketId} {player.id}</div>
+        return <div key={index}>{player.username}</div>
     });
 
 
