@@ -94,6 +94,12 @@ function GameRoom() {
     }, [router.isReady, socket]);
 
     function onRoundStart(newGameState: GameState): void {
+
+        if (newGameState.isGameOver()) {
+            alert(`Final Score: ${newGameState.getScore()}`);
+            router.replace('/');
+        }
+
         if (newGameState.isGameRunning) {
             const isMyTurn = newGameState.whoseTurn().id === myPlayerIdRef.current;
             if (isMyTurn) {
@@ -102,7 +108,6 @@ function GameRoom() {
                 handleOnChangePlayerGameRoomState(PlayerGameRoomState.Waiting, newGameState);
             }
         }
-
 
         setGameState(newGameState);
     }

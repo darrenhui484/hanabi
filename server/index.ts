@@ -22,7 +22,7 @@ const io = new Server(httpServer, {
     }
 });
 
-const roomIdToGameStateMap = new Map<string, GameState>();
+let roomIdToGameStateMap = new Map<string, GameState>();
 
 function handleFullRoom(gameState: GameState, socket: Socket, username: string) {
     if (gameState.isFull()) {
@@ -109,6 +109,11 @@ io.of("/").adapter.on("leave-room", (roomId, socketId) => {
     const gameState = roomIdToGameStateMap.get(roomId)
     if (gameState == null) return;
 
+    if (gameState.areAllEmptySeats()) {
+        roomIdToGameStateMap.delete(roomId);
+        return;
+    }
+
     if (gameState.isGameRunning) {
         const player = gameState.getPlayerBySocketId(socketId);
         if (player == null) return;
@@ -117,6 +122,12 @@ io.of("/").adapter.on("leave-room", (roomId, socketId) => {
     } else {
         gameState.removePlayer(socketId);
     }
+
+    if (gameState.areAllEmptySeats()) {
+        roomIdToGameStateMap.delete(roomId);
+        return;
+    }
+
     emitGameState('update-game-state', roomId, io);
 });
 
@@ -132,11 +143,15 @@ nextApp.prepare().then(() => {
     //     });
     // });
 
-    // expressApp.get('/list-gamestates', async (req, res) => {
-    //     res.send({
-    //         gameStates: Object.fromEntries(roomIdToGameStateMap)
-    //     });
-    // });
+    expressApp.get('/list-gamestates', async (req, res) => {
+        res.send({
+            gameStates: Object.fromEntries(roomIdToGameStateMap)
+        });
+    });
+
+    expressApp.get('/clear-rooms', (req, res) => {
+        roomIdToGameStateMap = new Map<string, GameState>();
+    });
 
     // let nextjs manage routes in pages/api
     expressApp.all('*', (req, res) => {

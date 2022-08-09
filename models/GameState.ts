@@ -95,8 +95,14 @@ export class GameState implements IGameState {
         this.discardPile.push(card);
     }
 
-    private isGameOver(): boolean {
-        return this.bombs === 0 || this.lastRoundCounter == 0;
+    getScore() {
+        return Array.from(this.playedCards.cards)
+            .map((playedCard) => playedCard[1])
+            .reduce((prev, current) => prev + current);
+    }
+
+    isGameOver(): boolean {
+        return this.bombs === 0 || this.lastRoundCounter == 0 || this.getScore() === 25;
     }
 
     private initializeDeck(): Array<Card> {
@@ -171,6 +177,9 @@ export class GameState implements IGameState {
         return this.getAnyEmptyPlayerSeat() == null;
     }
 
+    areAllEmptySeats(): boolean {
+        return this.players.find(player => player.isEmptySeat == false) == null;
+    }
 
     addPlayer(player: Player): void {
         if (this.players.length >= 5) return;
