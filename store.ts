@@ -18,4 +18,8 @@ export const selectedPlayerAtom = atom<Player | null>(null);
 export const selectedCardAtom = atom<Card | null>(null);
 
 export const isHintFormOpenAtom = atom(false);
-export const isYourTurnAtom = atom(false);
+
+export const isModalOpenAtom = atom(false);
+export const isEventLogOpenAtom = atom(false);
+export const shouldFireTurnUpdateAtom = atom(false);
+

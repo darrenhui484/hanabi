@@ -71,12 +71,12 @@ export class PlayerAction {
 
 export class PlayerActionData {
     type: Player.PlayerActionType;
-    cardId: string | null;
+    card: Card | null;
     hint: Hint | null;
 
-    constructor(type: Player.PlayerActionType, cardId: string | null, hint: Hint | null) {
+    constructor(type: Player.PlayerActionType, card: Card | null, hint: Hint | null) {
         this.type = type;
-        this.cardId = cardId;
+        this.card = card;
         this.hint = hint;
     }
 }

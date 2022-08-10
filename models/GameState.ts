@@ -109,13 +109,12 @@ export class GameState implements IGameState {
         let cards = [];
         for (let i = 0; i < Card.Colors.length; i++) {
             // 3 1-cards
-            for (let i = 0; i < 3; i++) {
+            for (let _ = 0; _ < 3; _++) {
                 cards.push(new Card(Card.Colors[i], 1));
             }
-
             // 2 2,3,4 cards
             for (let cardNumber = 2; cardNumber < 5; cardNumber++) {
-                for (let j = 0; j < 2; j++) {
+                for (let _ = 0; _ < 2; _++) {
                     cards.push(new Card(Card.Colors[i], cardNumber));
                 }
             }
@@ -124,6 +123,11 @@ export class GameState implements IGameState {
             cards.push(new Card(Card.Colors[i], 5));
         }
         return this.shuffle(cards);
+    }
+
+    private print(cards: Card[]) {
+        const result: Array<[string, number]> = cards.map((card) => [Card.Color[card.color], card.number])
+        console.log(result);
     }
 
     private shuffle(array: Array<any>): Array<any> {
@@ -146,6 +150,11 @@ export class GameState implements IGameState {
 
     private updateCurrentPlayerTurn() {
         this.currentPlayerTurn = (this.currentPlayerTurn + 1) % this.players.length;
+    }
+
+    getLastPlayerAction(): PlayerAction | null {
+        if (this.eventLog.length <= 0) return null;
+        return this.eventLog[this.eventLog.length - 1];
     }
 
     whoseTurn(): Player {

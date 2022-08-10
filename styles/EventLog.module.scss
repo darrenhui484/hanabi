@@ -1,0 +1,21 @@
+.main {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    overflow: scroll;
+}
+
+.title {
+    font-size: 32px;
+    display: flex;
+    margin-bottom: 15px;
+    padding: 10px;
+    border-bottom: 1px solid white;
+}
+
+.container {
+    padding: 5px;
+    margin: 5px;
+}

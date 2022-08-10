@@ -6,7 +6,7 @@
     width: 50px;
     margin: 3px;
     border-radius: 50%;
-    display: inline-block;
+    cursor: pointer;
 
     &:hover {
         @include selected-hover-animation();
@@ -24,7 +24,27 @@
     justify-content: center;
     align-items: center;
 
+    cursor: pointer;
+
     &:hover {
         @include selected-hover-animation();
     }
+}
+
+.dot-display {
+    height: 25px;
+    width: 25px;
+    margin: 5px;
+    border-radius: 50%;
+}
+
+.number-display {
+    height: 25px;
+    width: 25px;
+    margin: 5px;
+    border: 1px solid white;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }

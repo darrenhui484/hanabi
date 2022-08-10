@@ -87,10 +87,10 @@ io.on("connection", (socket: Socket) => {
         gameState.eventLog.push(playerAction);
         switch (playerAction.data.type) {
             case Player.PlayerActionType.Play:
-                gameState.handlePlayCardAction(playerAction.playerId, playerAction.data.cardId!);
+                gameState.handlePlayCardAction(playerAction.playerId, playerAction.data.card!.id);
                 break;
             case Player.PlayerActionType.Discard:
-                gameState.handleDiscardCardAction(playerAction.playerId, playerAction.data.cardId!);
+                gameState.handleDiscardCardAction(playerAction.playerId, playerAction.data.card!.id);
                 break;
             case Player.PlayerActionType.Hint:
                 gameState.handleGiveHint(playerAction.data.hint!);

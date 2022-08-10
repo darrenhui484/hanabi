@@ -9,23 +9,29 @@ import { Player, PlayerAction, PlayerActionData, PlayerGameRoomState } from '../
 import HintForm from '../components/HintForm';
 import { Hint } from '../models/Hint';
 import { useAtom, atom } from "jotai";
-import { socketAtom, gameStateAtom, roomIdAtom, playerIdAtom, selectedPlayerAtom, playerActionStateAtom, isHintFormOpenAtom, isYourTurnAtom } from '../store';
+import { socketAtom, gameStateAtom, roomIdAtom, playerIdAtom, selectedPlayerAtom, playerActionStateAtom, isHintFormOpenAtom, isEventLogOpenAtom, shouldFireTurnUpdateAtom } from '../store';
 import PlayedCards from '../components/PlayedCards';
 import styles from '../styles/GameRoom.module.scss';
 import { joinClassNames } from '../util/util';
-import { motion } from 'framer-motion';
+import { motion, Variants } from 'framer-motion';
 import HintCountItem from '../components/HintCountItem';
 import BombCountItem from '../components/BombCountItem';
+import Modal from '../components/Modal';
+import TurnUpdate from '../components/TurnUpdate';
+import PlayerHand from '../components/PlayerHand';
+import EventLog from '../components/EventLog';
 
 function GameRoom() {
     const router = useRouter();
+
+    const [isEventLogOpen, setIsEventLogOpen] = useAtom(isEventLogOpenAtom);
+    const [shouldFireTurnUpdate, setShouldFireTurnUpdate] = useAtom(shouldFireTurnUpdateAtom);
 
     const [socket, setSocket] = useAtom(socketAtom);
     const [roomId, setRoomId] = useAtom(roomIdAtom);
 
     const [gameState, _setGameState] = useAtom(gameStateAtom);
     const gameStateRef = useRef(gameState);
-
     const setGameState = (newGameState: GameState) => {
         gameStateRef.current = newGameState;
         _setGameState(gameStateRef.current);
@@ -58,15 +64,15 @@ function GameRoom() {
         const usernameParam = router.query.username!.toString();
 
         const joinedRoomHandler = (playerId: string) => {
-            console.log(`${playerId} joined room`)
+            // console.log(`${playerId} joined room`)
             setMyPlayerId(playerId);
         }
         socket.on('joined-room', joinedRoomHandler);
 
         const updateGameStateHandler = (gameState: IGameStateSerialized) => {
-            console.log('updating game state')
             const newGameState = GameState.deserialize(gameState);
-            onRoundStart(newGameState);
+            if (gameState.isGameRunning) onRoundStart(newGameState);
+            setGameState(newGameState)
         }
         socket.on('update-game-state', updateGameStateHandler);
         setRoomId(roomIdParam);
@@ -94,22 +100,20 @@ function GameRoom() {
     }, [router.isReady, socket]);
 
     function onRoundStart(newGameState: GameState): void {
-
         if (newGameState.isGameOver()) {
             alert(`Final Score: ${newGameState.getScore()}`);
             router.replace('/');
         }
 
-        if (newGameState.isGameRunning) {
-            const isMyTurn = newGameState.whoseTurn().id === myPlayerIdRef.current;
-            if (isMyTurn) {
-                handleOnChangePlayerGameRoomState(PlayerGameRoomState.DiscardCard, newGameState);
-            } else {
-                handleOnChangePlayerGameRoomState(PlayerGameRoomState.Waiting, newGameState);
-            }
+        const isMyTurn = newGameState.whoseTurn().id === myPlayerIdRef.current;
+        if (isMyTurn) {
+            handleOnChangePlayerGameRoomState(PlayerGameRoomState.GiveHint, newGameState);
+        } else {
+            handleOnChangePlayerGameRoomState(PlayerGameRoomState.Waiting, newGameState);
         }
 
-        setGameState(newGameState);
+        // setIsModalOpen(true)
+        setShouldFireTurnUpdate(true);
     }
 
     function onActionDone(playerAction: PlayerAction) {
@@ -132,14 +136,14 @@ function GameRoom() {
                 let player = gameStateRef.current!.getPlayer(myPlayerIdRef.current);
                 if (player == null) throw new Error(`player ${myPlayerIdRef.current} does not exist`);
                 if (!player.hasCard(card.id)) break;
-                playerAction = new PlayerAction(myPlayerIdRef.current, new PlayerActionData(Player.PlayerActionType.Play, card.id, null));
+                playerAction = new PlayerAction(myPlayerIdRef.current, new PlayerActionData(Player.PlayerActionType.Play, card, null));
                 onActionDone(playerAction)
                 break;
             case PlayerGameRoomState.DiscardCard:
                 player = gameStateRef.current!.getPlayer(myPlayerIdRef.current);
                 if (player == null) throw new Error(`player ${myPlayerIdRef.current} does not exist`);
                 if (!player.hasCard(card.id)) break;
-                playerAction = new PlayerAction(myPlayerIdRef.current, new PlayerActionData(Player.PlayerActionType.Discard, card.id, null));
+                playerAction = new PlayerAction(myPlayerIdRef.current, new PlayerActionData(Player.PlayerActionType.Discard, card, null));
                 onActionDone(playerAction)
                 break;
         }
@@ -177,13 +181,6 @@ function GameRoom() {
         onActionDone(playerAction)
     }
 
-    function handleOnPlayerHandSelected(selectedPlayerId: string) {
-        if ([PlayerGameRoomState.PlayCard, PlayerGameRoomState.DiscardCard].includes(playerGameRoomState)) return;
-        if (PlayerGameRoomState.GiveHint) {
-            setSelectedPlayer(gameStateRef.current!.getPlayer(selectedPlayerId));
-        }
-    }
-
     const variants = {
         activeChoice: {
             fontSize: '40px',
@@ -192,6 +189,7 @@ function GameRoom() {
             padding: '5px 10px 10px 10px',
             borderTopLeftRadius: '30px',
             borderTopRightRadius: '30px',
+            cursor: 'default'
         },
         inactiveChoice: {
             padding: '5px 10px 10px 10px',
@@ -208,28 +206,21 @@ function GameRoom() {
             padding: '5px 10px 10px 10px',
             borderTopLeftRadius: '30px',
             borderTopRightRadius: '30px',
+            cursor: 'default'
         },
         visibleHintFormOpen: {
             y: '-132px',
             opacity: 1
         },
-        notSelectedPlayer: {
-            transform: 'scale(1)'
-        },
-        notSelectedPlayerHover: {
-            transform: 'scale(1.2)'
-        },
-        selectedPlayer: {
-            backgroundColor: 'hsl(304, 33, 14)',
-            transform: 'scale(1)'
-        },
+
         visible: {
             opacity: 1
         },
         hidden: {
             opacity: 0,
             display: 'none'
-        }
+        },
+
 
     }
 
@@ -271,51 +262,44 @@ function GameRoom() {
         return 'visible';
     }
 
-    function determinePlayerHandCSSVariant(elementOwnerId: string): string {
-        if (selectedPlayer == null) return 'notSelectedPlayer';
-
-        if (playerGameRoomState === PlayerGameRoomState.GiveHint) {
-            if (myPlayerIdRef.current === elementOwnerId) {
-                return 'notSelectedPlayer';
-            }
-            if (selectedPlayer.id === elementOwnerId) {
-                return 'selectedPlayer';
-            }
-            return 'notSelectedPlayer';
-        } else if ([PlayerGameRoomState.PlayCard, PlayerGameRoomState.DiscardCard].includes(playerGameRoomState)) {
-            if (selectedPlayer.id === elementOwnerId) {
-                return 'selectedPlayer';
-            }
-            return 'notSelectedPlayer';
-        }
-        return 'notSelectedPlayer';
+    function determineModalCSSVariant(): string {
+        return shouldOpenModal() ? 'modalOpen' : 'modalClosed'
     }
 
-    function determinePlayerHandCSSVariantHover(elementOwnerId: string): string {
-        if (selectedPlayer == null) return 'notSelectedPlayer';
-
-        if (playerGameRoomState === PlayerGameRoomState.GiveHint) {
-            if (myPlayerIdRef.current === elementOwnerId) {
-                return 'notSelectedPlayer';
-            }
-            if (selectedPlayer.id === elementOwnerId) {
-                return 'selectedPlayer';
-            }
-            return 'notSelectedPlayerHover';
-        } else if ([PlayerGameRoomState.PlayCard, PlayerGameRoomState.DiscardCard].includes(playerGameRoomState)) {
-            if (selectedPlayer.id === elementOwnerId) {
-                return 'selectedPlayer';
-            }
-            return 'notSelectedPlayer';
-        }
-        return 'notSelectedPlayer';
+    function onTurnUpdateAnimationComplete() {
+        setShouldFireTurnUpdate(false);
     }
+
+    function onEventLogClose() {
+        setIsEventLogOpen(false);
+    }
+
+    function determineGameBoardCSSClasses(): string {
+        if (playerGameRoomState === PlayerGameRoomState.Waiting) return joinClassNames(styles['game-board'], styles['game-board-default-height'])
+        if (playerGameRoomState === PlayerGameRoomState.GiveHint) return joinClassNames(styles['game-board'], styles['game-board-hint-form-height']);
+        return joinClassNames(styles['game-board-your-turn-height'], styles['game-board']);
+    }
+
+    function handleEventLogOnClick() {
+        setIsEventLogOpen(true)
+    }
+
+    function shouldOpenModal(): boolean {
+        console.log(`${isEventLogOpen} ${shouldFireTurnUpdate}`)
+        return isEventLogOpen || shouldFireTurnUpdate;
+    }
+
+    function determineModalChild(): JSX.Element | null {
+        if (isEventLogOpen) return <EventLog playerList={gameStateRef.current!.players} onClose={onEventLogClose} eventLog={gameStateRef.current?.eventLog!} />
+        if (shouldFireTurnUpdate) return <TurnUpdate isModalOpen={shouldFireTurnUpdate} onAnimationComplete={onTurnUpdateAnimationComplete} gameState={gameStateRef.current!} />;
+        return null;
+    }
+
 
     function displayGameBoard(): JSX.Element {
         return (
-            <div>
-                <div className={styles['game-board']}>
-                    <h2>{`${gameStateRef.current?.whoseTurn().username}\'s turn`}</h2>
+            <>
+                <div className={determineGameBoardCSSClasses()}>
 
                     <div>
                         <div className={styles.counters}>
@@ -325,26 +309,28 @@ function GameRoom() {
                             <div className={styles['counter-row']}>
                                 <HintCountItem /> x{gameStateRef.current?.hints}
                             </div>
+                            <div className={styles['counter-row']}>
+                                <div className={styles['deck-icon']} /> x{gameStateRef.current?.deck.length}
+                            </div>
                         </div>
 
                         <div className={styles['board-state']}>
-                            <PlayedCards playedCards={gameStateRef.current?.playedCards} />
-                            <DiscardPile cards={gameStateRef.current?.discardPile} />
+                            {gameStateRef.current!.playedCards.isEmpty ? null : <PlayedCards playedCards={gameStateRef.current?.playedCards} />}
+                            {gameStateRef.current!.discardPile.length <= 0 ? null : <DiscardPile cards={gameStateRef.current?.discardPile} />}
+
                         </div>
                     </div>
 
                     <div className={styles.hands}>
                         {gameStateRef.current?.players.map((player, index) => {
                             return (
-                                <motion.div key={index} onClick={event => handleOnPlayerHandSelected(player.id)}
-                                    animate={determinePlayerHandCSSVariant(player.id)}
-                                    whileHover={determinePlayerHandCSSVariantHover(player.id)}
-                                    variants={variants}
-                                    transition={{ duration: 0.2 }}
-                                    className={styles.playerHand}>
-                                    {player.username}
-                                    <CardList cards={player.hand} handleOnClickCard={handleOnClickCard} isHorizontal={true} isHidden={myPlayerIdRef.current === player.id} />
-                                </motion.div>
+                                <PlayerHand
+                                    key={index}
+                                    handOwnerPlayer={player}
+                                    myPlayerId={myPlayerIdRef.current}
+                                    handleOnClickCard={handleOnClickCard}
+                                    gameState={gameStateRef.current!}
+                                />
                             );
                         })}
                     </div>
@@ -374,10 +360,8 @@ function GameRoom() {
                     </motion.div>
 
                     <HintForm handleSubmitHint={handleSubmitHint} />
-
-
                 </div>
-            </div>
+            </>
 
         )
     }
@@ -385,9 +369,22 @@ function GameRoom() {
     return (
         <div className={styles.main}>
             <div className={styles['room-info']}>{roomId}</div>
+            {!gameStateRef.current?.isGameRunning ? null :
+                <motion.div
+                    whileHover={{ scale: 1.3 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ ease: 'linear', duration: 0.2 }}
+                    className={styles['display-event-log-button']}
+                    onClick={event => handleEventLogOnClick()}>
+                    Log
+                </motion.div>
+            }
 
             {gameStateRef.current?.isGameRunning ? displayGameBoard() : <WaitingCard players={gameStateRef.current?.players} onClickStart={onClickStart} />}
 
+            {shouldOpenModal() ? <Modal isOpen={shouldOpenModal()}>
+                {determineModalChild()}
+            </Modal > : null}
 
         </div>
     );

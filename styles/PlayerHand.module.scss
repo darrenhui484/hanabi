@@ -1,0 +1,26 @@
+.main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 5px;
+}
+
+.eye-container {
+    margin-right: 5px;
+}
+
+.player-hand {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-top: 3px;
+    padding-bottom: 20px;
+}
+
+.username-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    justify-content: center;
+}

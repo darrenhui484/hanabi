@@ -20,15 +20,13 @@ export default function HintForm({ handleSubmitHint: handleSubmitHint }: IHintFo
     const variants = {
         open: {
             y: '0px',
-            x: '-50%'
+            x: '-50%',
+            display: 'inherit'
         },
         closed: {
-            y: '20vh',
+            y: '132px',
             x: '-50%',
-            display: 'none',
-            // transitionEnd: {
-            //     display: 'none'
-            // }
+            transitionEnd: { display: "none" },
         }
     }
 
@@ -49,6 +47,7 @@ export default function HintForm({ handleSubmitHint: handleSubmitHint }: IHintFo
             animate={isHintFormOpen ? 'open' : 'closed'}
             variants={variants}
             transition={{ duration: 0.2 }}
+            initial={'closed'}
             className={styles['options-container']}
         >
             <div className={styles.container}>
