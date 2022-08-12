@@ -98,8 +98,6 @@ function GameRoom() {
             const prevGameState = gameStateRef.current;
             const newGameState = GameState.deserialize(gameState);
             const isFirstTurn = newGameState.getTurnsPassed() === 0;
-            //BUG modal will run on player reconnect on first turn of game
-
             const isDifferentPlayerTurn = prevGameState == null ? true : prevGameState.whoseTurn().id !== newGameState.whoseTurn().id;
             console.log(`${newGameState.isGameRunning} ${isFirstTurn} ${isDifferentPlayerTurn}`)
             if (newGameState.isGameRunning && (isFirstTurn || isDifferentPlayerTurn)) onRoundStart(newGameState);
@@ -230,7 +228,6 @@ function GameRoom() {
         inactiveChoice: {
             padding: '5px 10px 10px 10px',
             fontSize: '15px',
-            // y: '0px'
         },
         visible: {
             display: 'flex'
@@ -238,8 +235,6 @@ function GameRoom() {
         hidden: {
             display: 'none'
         },
-
-
     }
 
     function determineChoiceCSSVariant(currentPlayerGameRoomState: PlayerGameRoomState, element: string): string {
@@ -347,6 +342,7 @@ function GameRoom() {
                     </div>
 
                     <HintForm handleSubmitHint={handleSubmitHint} />
+
                 </motion.div>
             </div>
 

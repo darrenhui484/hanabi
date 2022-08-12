@@ -30,6 +30,12 @@
     height: 100%;
     width: 100%;
     align-items: center;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    scrollbar-width: none;
 }
 
 .display-event-log-button {
@@ -69,19 +75,12 @@
 .choices {
     display: flex;
     flex-direction: row;
-    // justify-content: center;
-    // position: fixed;
-    // bottom: 0;
-    // left: 0;
-    // width: 100%;
     align-items: flex-end;
 }
 
 .choice {
     margin: 10px;
     cursor: pointer;
-
-    // &:hover {}
 }
 
 .board-state {
@@ -90,9 +89,7 @@
     align-items: center;
 }
 
-.hands {
-    // margin: 10px;
-}
+.hands {}
 
 .playerHand {
     display: flex;

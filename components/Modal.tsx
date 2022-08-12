@@ -21,8 +21,6 @@ export default function Modal({ children, isOpen }: IModalProps) {
         }
     }
 
-    //TODO figure out why modal transition doesnt disappear according to duration
-
     return (
         <motion.div
             animate={isOpen ? 'visible' : 'hidden'}
