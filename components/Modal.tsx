@@ -10,7 +10,7 @@ export default function Modal({ children, isOpen }: IModalProps) {
 
     const variants = {
         visible: {
-            display: 'inherit',
+            display: 'block',
             opacity: 1
         },
         hidden: {
@@ -27,7 +27,7 @@ export default function Modal({ children, isOpen }: IModalProps) {
         <motion.div
             animate={isOpen ? 'visible' : 'hidden'}
             variants={variants}
-            transition={{ duration: 3 }}
+            transition={{ duration: 0.1 }}
             className={styles.main}>
             {children}
         </motion.div>

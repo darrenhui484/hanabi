@@ -24,6 +24,8 @@ import EventLog from '../components/EventLog';
 function GameRoom() {
     const router = useRouter();
 
+    const synthRef = useRef<SpeechSynthesis | null>(null);
+
     const [isEventLogOpen, setIsEventLogOpen] = useAtom(isEventLogOpenAtom);
     const [shouldFireTurnUpdate, setShouldFireTurnUpdate] = useAtom(shouldFireTurnUpdateAtom);
 
@@ -54,6 +56,30 @@ function GameRoom() {
     const [isHintFormOpen, setIsHintFormOpen] = useAtom(isHintFormOpenAtom);
 
     useEffect(() => {
+        synthRef.current = window.speechSynthesis;
+    }, [])
+
+    useEffect(() => {
+        const boredStrings = [
+            'I could have taken a dump by now',
+            'any day now',
+            'i didn\'t know clicking a button was so hard',
+            'first time?',
+            'fi dee lah',
+            'you\'re a third rate duelist with a fourth rate deck',
+            'what\'s that tiny speck, oh it\'s your brain',
+            'you play like a cow',
+            'you play like a dairy farmer'
+        ]
+        const turnReminder = setInterval(() => {
+            if (gameStateRef.current !== null && gameStateRef.current.isGameRunning && gameStateRef.current.whoseTurn().id === myPlayerIdRef.current)
+                speak(boredStrings[Math.floor(Math.random() * (boredStrings.length))])
+        }, 120000);
+
+        return () => clearInterval(turnReminder);
+    }, [gameStateRef.current])
+
+    useEffect(() => {
         if (!router.isReady || socket == null) return;
         if (router.query.roomId == null || router.query.username == null) {
             router.replace('/');
@@ -64,14 +90,19 @@ function GameRoom() {
         const usernameParam = router.query.username!.toString();
 
         const joinedRoomHandler = (playerId: string) => {
-            // console.log(`${playerId} joined room`)
             setMyPlayerId(playerId);
         }
         socket.on('joined-room', joinedRoomHandler);
 
         const updateGameStateHandler = (gameState: IGameStateSerialized) => {
+            const prevGameState = gameStateRef.current;
             const newGameState = GameState.deserialize(gameState);
-            if (gameState.isGameRunning) onRoundStart(newGameState);
+            const isFirstTurn = newGameState.getTurnsPassed() === 0;
+            //BUG modal will run on player reconnect on first turn of game
+
+            const isDifferentPlayerTurn = prevGameState == null ? true : prevGameState.whoseTurn().id !== newGameState.whoseTurn().id;
+            console.log(`${newGameState.isGameRunning} ${isFirstTurn} ${isDifferentPlayerTurn}`)
+            if (newGameState.isGameRunning && (isFirstTurn || isDifferentPlayerTurn)) onRoundStart(newGameState);
             setGameState(newGameState)
         }
         socket.on('update-game-state', updateGameStateHandler);
@@ -107,13 +138,17 @@ function GameRoom() {
 
         const isMyTurn = newGameState.whoseTurn().id === myPlayerIdRef.current;
         if (isMyTurn) {
+            speak('Your move, yugi boy')
             handleOnChangePlayerGameRoomState(PlayerGameRoomState.GiveHint, newGameState);
         } else {
             handleOnChangePlayerGameRoomState(PlayerGameRoomState.Waiting, newGameState);
         }
 
-        // setIsModalOpen(true)
         setShouldFireTurnUpdate(true);
+    }
+
+    function speak(text: string) {
+        synthRef.current!.speak(new SpeechSynthesisUtterance(text))
     }
 
     function onActionDone(playerAction: PlayerAction) {
@@ -176,6 +211,7 @@ function GameRoom() {
     }
 
     function handleSubmitHint(hint: Hint) {
+        if (gameStateRef.current!.hints <= 0) throw new Error('attempting to submit hint when no hints exist');
         setIsHintFormOpen(false);
         const playerAction = new PlayerAction(myPlayerIdRef.current, new PlayerActionData(Player.PlayerActionType.Hint, null, hint));
         onActionDone(playerAction)
@@ -285,13 +321,12 @@ function GameRoom() {
     }
 
     function shouldOpenModal(): boolean {
-        console.log(`${isEventLogOpen} ${shouldFireTurnUpdate}`)
         return isEventLogOpen || shouldFireTurnUpdate;
     }
 
     function determineModalChild(): JSX.Element | null {
         if (isEventLogOpen) return <EventLog playerList={gameStateRef.current!.players} onClose={onEventLogClose} eventLog={gameStateRef.current?.eventLog!} />
-        if (shouldFireTurnUpdate) return <TurnUpdate isModalOpen={shouldFireTurnUpdate} onAnimationComplete={onTurnUpdateAnimationComplete} gameState={gameStateRef.current!} />;
+        if (shouldFireTurnUpdate) return <TurnUpdate onAnimationComplete={onTurnUpdateAnimationComplete} gameState={gameStateRef.current!} />;
         return null;
     }
 
@@ -366,6 +401,9 @@ function GameRoom() {
         )
     }
 
+    // BUGS: 
+    // apple screen height
+
     return (
         <div className={styles.main}>
             <div className={styles['room-info']}>{roomId}</div>
@@ -382,9 +420,9 @@ function GameRoom() {
 
             {gameStateRef.current?.isGameRunning ? displayGameBoard() : <WaitingCard players={gameStateRef.current?.players} onClickStart={onClickStart} />}
 
-            {shouldOpenModal() ? <Modal isOpen={shouldOpenModal()}>
+            <Modal isOpen={shouldOpenModal()}>
                 {determineModalChild()}
-            </Modal > : null}
+            </Modal >
 
         </div>
     );

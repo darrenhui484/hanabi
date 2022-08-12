@@ -13,7 +13,7 @@ interface IPlayerActionItem {
 export default function PlayerActionItem({ playerList, playerAction }: IPlayerActionItem) {
 
     function getUsername(id: string): string {
-        const player = playerList.find((player) => player.id === playerAction.playerId)
+        const player = playerList.find((player) => player.id === id)
         if (player == null) throw new Error('player does not exist');
         return player.username;
     }

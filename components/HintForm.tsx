@@ -21,7 +21,7 @@ export default function HintForm({ handleSubmitHint: handleSubmitHint }: IHintFo
         open: {
             y: '0px',
             x: '-50%',
-            display: 'inherit'
+            display: 'block'
         },
         closed: {
             y: '132px',

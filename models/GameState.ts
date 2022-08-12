@@ -38,7 +38,7 @@ export class GameState implements IGameState {
         this.players = [];
         this.isGameRunning = false;
         this.lastRoundCounter = -1;
-        this.currentPlayerTurn = -1;
+        this.currentPlayerTurn = 0;
         this.hintsMax = hintCount;
         this.hints = this.hintsMax;
         this.bombs = bombCount;
@@ -74,8 +74,8 @@ export class GameState implements IGameState {
         return newGameState;
     }
 
-    private drawCard(): Card {
-        if (this.deck.length <= 0) throw new Error('drawing from empty deck')
+    private drawCard(): Card | null {
+        if (this.deck.length <= 0) return null;
         return this.deck.pop()!;
     }
 
@@ -95,6 +95,10 @@ export class GameState implements IGameState {
         this.discardPile.push(card);
     }
 
+    getTurnsPassed() {
+        return this.eventLog.length;
+    }
+
     getScore() {
         return Array.from(this.playedCards.cards)
             .map((playedCard) => playedCard[1])
@@ -106,7 +110,7 @@ export class GameState implements IGameState {
     }
 
     private initializeDeck(): Array<Card> {
-        let cards = [];
+        const cards = [];
         for (let i = 0; i < Card.Colors.length; i++) {
             // 3 1-cards
             for (let _ = 0; _ < 3; _++) {
@@ -123,6 +127,14 @@ export class GameState implements IGameState {
             cards.push(new Card(Card.Colors[i], 5));
         }
         return this.shuffle(cards);
+    }
+
+    private initDeckTest() {
+        const cards = []
+        for (let i = 0; i < 13; i++) {
+            cards.push(new Card(Card.Colors[0], 1))
+        }
+        return cards;
     }
 
     private print(cards: Card[]) {
@@ -164,26 +176,26 @@ export class GameState implements IGameState {
 
     startGame(): void {
         this.isGameRunning = true;
-        this.lastRoundCounter = this.players.length;
-        this.currentPlayerTurn = Math.floor(Math.random() * this.players.length);
+        this.lastRoundCounter = this.players.length + 1; // gameloop runs the moment deck hits 0
+        this.currentPlayerTurn = 0//Math.floor(Math.random() * this.players.length);
         const handSize = this.players.length >= 4 ? 5 : 4;
         for (const player of this.players) {
             for (let i = 0; i < handSize; i++) {
-                player.addToHand(this.drawCard())
+                player.addToHand(this.drawCard()!)
             }
         }
     }
 
     isFull(): boolean {
         if (this.isGameRunning) {
-            return this.hasEmptySeats();
+            return !this.hasEmptySeats();
         } else {
             return this.players.length >= 5;
         }
     }
 
     private hasEmptySeats(): boolean {
-        return this.getAnyEmptyPlayerSeat() == null;
+        return this.getAnyEmptyPlayerSeat() !== null;
     }
 
     areAllEmptySeats(): boolean {
@@ -230,11 +242,11 @@ export class GameState implements IGameState {
         return player == null ? null : player;
     }
 
-    getPlayerWithCard(cardId: string): Player {
+    getPlayerWithCard(cardId: string): Player | null {
         for (const player of this.players) {
             if (player.hasCard(cardId)) return player;
         }
-        throw new Error(`no players have card: ${cardId}`);
+        return null;
     }
 
     // runs after every player action
@@ -252,7 +264,8 @@ export class GameState implements IGameState {
             this.addDiscard(card);
             this.removeBomb();
         }
-        player.addToHand(this.drawCard());
+        const drawnCard = this.drawCard();
+        if (drawnCard) player.addToHand(drawnCard);
         this.updateCurrentPlayerTurn();
     }
 
@@ -261,7 +274,8 @@ export class GameState implements IGameState {
         const card = player.removeFromHand(cardId);
         this.addDiscard(card);
         this.addHint();
-        player.addToHand(this.drawCard());
+        const drawnCard = this.drawCard();
+        if (drawnCard) player.addToHand(drawnCard);
         this.updateCurrentPlayerTurn();
     }
 

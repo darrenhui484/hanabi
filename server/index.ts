@@ -26,7 +26,6 @@ let roomIdToGameStateMap = new Map<string, GameState>();
 
 function handleFullRoom(gameState: GameState, socket: Socket, username: string) {
     if (gameState.isFull()) {
-        console.log('IS FULL');
         socket.emit('full-room');
     } else {
         let player;
@@ -45,6 +44,17 @@ function emitGameState(eventName: string, roomId: string, io: Server) {
     const gameState = roomIdToGameStateMap.get(roomId)!;
     const gameStateSerialized = GameState.serialize(gameState);
     io.to(roomId).emit(eventName, gameStateSerialized);
+}
+
+class Validator {
+
+    static doesCardExistInPlayerHand(card: Card | null, playerId: string, gameState: GameState): boolean {
+        return card !== null && gameState.getPlayer(playerId)!.hasCard(card.id) !== null;
+    }
+
+    static canGiveHint(gameState: GameState): boolean {
+        return gameState.hints > 0;
+    }
 }
 
 io.on("connection", (socket: Socket) => {
@@ -75,32 +85,43 @@ io.on("connection", (socket: Socket) => {
     });
 
     socket.on('start-game', (roomId: string) => {
-        console.log('START GAME');
         const gameState = roomIdToGameStateMap.get(roomId)!;
         gameState.startGame();
         emitGameState('update-game-state', roomId, io);
     })
 
     socket.on('player-action', (roomId: string, playerAction: PlayerAction) => {
-        // modify game state
         let gameState = roomIdToGameStateMap.get(roomId)!;
-        gameState.eventLog.push(playerAction);
+        // validate player action
+        if (gameState.whoseTurn().id !== playerAction.playerId) return; // only player can act on their turn
+
+
+        // modify game state
+
         switch (playerAction.data.type) {
             case Player.PlayerActionType.Play:
-                gameState.handlePlayCardAction(playerAction.playerId, playerAction.data.card!.id);
+                let card = playerAction.data.card;
+                if (!Validator.doesCardExistInPlayerHand(card, playerAction.playerId, gameState)) return;
+                gameState.handlePlayCardAction(playerAction.playerId, card!.id);
                 break;
             case Player.PlayerActionType.Discard:
+                card = playerAction.data.card;
+                if (!Validator.doesCardExistInPlayerHand(card, playerAction.playerId, gameState)) return;
                 gameState.handleDiscardCardAction(playerAction.playerId, playerAction.data.card!.id);
                 break;
             case Player.PlayerActionType.Hint:
+                if (!Validator.canGiveHint(gameState)) return;
                 gameState.handleGiveHint(playerAction.data.hint!);
                 break;
         }
+        gameState.eventLog.push(playerAction);
         gameState.gameLoop();
 
         // update game state
         roomIdToGameStateMap.set(roomId, gameState);
         emitGameState('update-game-state', roomId, io);
+
+        if (gameState.isGameOver()) roomIdToGameStateMap.delete(roomId);
     })
 });
 
@@ -135,17 +156,22 @@ instrument(io, { auth: false });
 
 nextApp.prepare().then(() => {
     // define express api routes here
-    // expressApp.get('/list-sockets', async (req, res) => {
-
-    //     let sockets = await io.fetchSockets();
-    //     res.send({
-    //         sockets: sockets.length
-    //     });
-    // });
 
     expressApp.get('/list-gamestates', async (req, res) => {
         res.send({
             gameStates: Object.fromEntries(roomIdToGameStateMap)
+        });
+    });
+
+    expressApp.get('/list-available-rooms', async (req, res) => {
+        const result = [];
+        for (const kvp of Array.from(roomIdToGameStateMap)) {
+            const gameState = kvp[1];
+            if (gameState.isFull() || gameState.isGameRunning) continue;
+            result.push({ roomId: kvp[0], numberOfPlayers: kvp[1].players.length })
+        }
+        res.send({
+            availableRooms: result
         });
     });
 

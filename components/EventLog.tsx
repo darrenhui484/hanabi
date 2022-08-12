@@ -16,7 +16,10 @@ export default function EventLog({ playerList, eventLog, onClose }: IEventLogPro
         <div className={styles.main}>
 
             <div className={styles.title}>
-                Events <CloseButton onCloseClick={onClose} />
+                Events
+            </div>
+            <div className={styles['close-button']}>
+                <CloseButton onCloseClick={onClose} />
             </div>
             {eventLog.map((playerAction, index) =>
                 <div key={index} className={styles.container}>
