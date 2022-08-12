@@ -19,13 +19,13 @@ export default function HintForm({ handleSubmitHint: handleSubmitHint }: IHintFo
 
     const variants = {
         open: {
-            y: '0px',
-            x: '-50%',
-            display: 'block'
+            // y: '0px',
+            // x: '-50%',
+            display: 'flex'
         },
         closed: {
-            y: '132px',
-            x: '-50%',
+            // y: '132px',
+            // x: '-50%',
             transitionEnd: { display: "none" },
         }
     }

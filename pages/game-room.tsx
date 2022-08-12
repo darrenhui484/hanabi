@@ -230,30 +230,12 @@ function GameRoom() {
         inactiveChoice: {
             padding: '5px 10px 10px 10px',
             fontSize: '15px',
-            y: '0px'
+            // y: '0px'
         },
-        inactiveChoiceHintFormOpen: {
-            padding: '5px 10px 10px 10px',
-        },
-        activeChoiceHintFormOpen: {
-            fontSize: '32px',
-            backgroundColor: 'hsl(0, 0, 4)',
-            borderBottom: '4px solid green',
-            padding: '5px 10px 10px 10px',
-            borderTopLeftRadius: '30px',
-            borderTopRightRadius: '30px',
-            cursor: 'default'
-        },
-        visibleHintFormOpen: {
-            y: '-132px',
-            opacity: 1
-        },
-
         visible: {
-            opacity: 1
+            display: 'flex'
         },
         hidden: {
-            opacity: 0,
             display: 'none'
         },
 
@@ -261,45 +243,13 @@ function GameRoom() {
     }
 
     function determineChoiceCSSVariant(currentPlayerGameRoomState: PlayerGameRoomState, element: string): string {
-        if (element === 'play') {
-            if (PlayerGameRoomState.PlayCard === currentPlayerGameRoomState) {
-                return 'activeChoice';
-            }
-
-            if (PlayerGameRoomState.GiveHint === currentPlayerGameRoomState) {
-                return 'inactiveChoiceHintFormOpen';
-            }
-        }
-
-        if (element === 'discard') {
-            if (PlayerGameRoomState.DiscardCard === currentPlayerGameRoomState) {
-                return 'activeChoice';
-            }
-
-            if (PlayerGameRoomState.GiveHint === currentPlayerGameRoomState) {
-                return 'inactiveChoiceHintFormOpen';
-            }
-        }
-
+        if (element === 'play' && PlayerGameRoomState.PlayCard === currentPlayerGameRoomState) return 'activeChoice';
+        if (element === 'discard' && PlayerGameRoomState.DiscardCard === currentPlayerGameRoomState) return 'activeChoice';
         if (element === 'hint') {
-            if (gameStateRef.current!.hints === 0) {
-                return 'hidden';
-            }
-            if (PlayerGameRoomState.GiveHint === currentPlayerGameRoomState) {
-                return 'activeChoiceHintFormOpen';
-            }
+            if (gameStateRef.current!.hints <= 0) return 'hidden';
+            if (PlayerGameRoomState.GiveHint === currentPlayerGameRoomState) return 'activeChoice';
         }
         return 'inactiveChoice';
-    }
-
-    function determineChoicesContainerCSSVariant(currentPlayerGameRoomState: PlayerGameRoomState) {
-        if (currentPlayerGameRoomState === PlayerGameRoomState.Waiting) return 'hidden';
-        if (isHintFormOpen) return 'visibleHintFormOpen';
-        return 'visible';
-    }
-
-    function determineModalCSSVariant(): string {
-        return shouldOpenModal() ? 'modalOpen' : 'modalClosed'
     }
 
     function onTurnUpdateAnimationComplete() {
@@ -308,12 +258,6 @@ function GameRoom() {
 
     function onEventLogClose() {
         setIsEventLogOpen(false);
-    }
-
-    function determineGameBoardCSSClasses(): string {
-        if (playerGameRoomState === PlayerGameRoomState.Waiting) return joinClassNames(styles['game-board'], styles['game-board-default-height'])
-        if (playerGameRoomState === PlayerGameRoomState.GiveHint) return joinClassNames(styles['game-board'], styles['game-board-hint-form-height']);
-        return joinClassNames(styles['game-board-your-turn-height'], styles['game-board']);
     }
 
     function handleEventLogOnClick() {
@@ -333,8 +277,8 @@ function GameRoom() {
 
     function displayGameBoard(): JSX.Element {
         return (
-            <>
-                <div className={determineGameBoardCSSClasses()}>
+            <div className={styles['big-container']}>
+                <div className={styles['game-board']}>
 
                     <div>
                         <div className={styles.counters}>
@@ -371,38 +315,43 @@ function GameRoom() {
                     </div>
                 </div>
 
-                <div>
-                    <motion.div
-                        animate={determineChoicesContainerCSSVariant(playerGameRoomState)}
-                        variants={variants}
-                        transition={{ duration: 0.2 }}
-                        className={styles.choices}>
+                <motion.div
+                    animate={playerGameRoomState === PlayerGameRoomState.Waiting ? 'hidden' : 'visible'}
+                    variants={variants}
+                    transition={{ duration: 0.2 }}
+                    className={styles['bottom-container']}
+                >
+
+                    <div className={styles.choices}>
                         <motion.div
                             animate={determineChoiceCSSVariant(playerGameRoomState, 'play')}
                             transition={{ duration: 0.2 }}
                             variants={variants}
-                            className={styles.choice} onClick={event => handleOnChangePlayerGameRoomState(PlayerGameRoomState.PlayCard, gameStateRef?.current)}>Play</motion.div>
+                            className={styles.choice} onClick={event => handleOnChangePlayerGameRoomState(PlayerGameRoomState.PlayCard, gameStateRef?.current)}>
+                            Play
+                        </motion.div>
                         <motion.div
                             animate={determineChoiceCSSVariant(playerGameRoomState, 'discard')}
                             transition={{ duration: 0.2 }}
                             variants={variants}
-                            className={styles.choice} onClick={event => handleOnChangePlayerGameRoomState(PlayerGameRoomState.DiscardCard, gameStateRef?.current)}>Discard</motion.div>
+                            className={styles.choice} onClick={event => handleOnChangePlayerGameRoomState(PlayerGameRoomState.DiscardCard, gameStateRef?.current)}>
+                            Discard
+                        </motion.div>
                         <motion.div
                             animate={determineChoiceCSSVariant(playerGameRoomState, 'hint')}
                             transition={{ duration: 0.2 }}
                             variants={variants}
-                            className={styles.choice} onClick={event => handleOnChangePlayerGameRoomState(PlayerGameRoomState.GiveHint, gameStateRef?.current)}>Give Hint</motion.div>
-                    </motion.div>
+                            className={styles.choice} onClick={event => handleOnChangePlayerGameRoomState(PlayerGameRoomState.GiveHint, gameStateRef?.current)}>
+                            Give Hint
+                        </motion.div>
+                    </div>
 
                     <HintForm handleSubmitHint={handleSubmitHint} />
-                </div>
-            </>
+                </motion.div>
+            </div>
 
         )
     }
-
-    // BUGS: 
-    // apple screen height
 
     return (
         <div className={styles.main}>
